@@ -1,0 +1,202 @@
+{
+  "generated_ts": 1770537420,
+  "source": "model",
+  "report": {
+    "accuracy": 0.946,
+    "model": "RandomForest",
+    "features": 6,
+    "report_text": "              precision    recall  f1-score   support\n\n           0      0.954     0.984     0.969      5140\n           1      0.894     0.732     0.805       918\n\n    accuracy                          0.946      6058\n   macro avg      0.924     0.858     0.887      6058\nweighted avg      0.945     0.946     0.944      6058\n"
+  },
+  "predictions": [
+    {
+      "node_id": "temp_0f",
+      "risk_battery_low": 0.005587640656977403,
+      "pm25": 0.0,
+      "temp_tenths": 239.0,
+      "noise_db": 0.0,
+      "battery_mv": 3000.0,
+      "predicted_label": "OK"
+    },
+    {
+      "node_id": "temp_0b",
+      "risk_battery_low": 0.0017831102941329082,
+      "pm25": 0.0,
+      "temp_tenths": 251.0,
+      "noise_db": 0.0,
+      "battery_mv": 3000.0,
+      "predicted_label": "OK"
+    },
+    {
+      "node_id": "poll_06",
+      "risk_battery_low": 0.1037502781015784,
+      "pm25": 73.0,
+      "temp_tenths": 0.0,
+      "noise_db": 0.0,
+      "battery_mv": 3000.0,
+      "predicted_label": "OK"
+    },
+    {
+      "node_id": "temp_0d",
+      "risk_battery_low": 0.005859887668510222,
+      "pm25": 0.0,
+      "temp_tenths": 245.0,
+      "noise_db": 0.0,
+      "battery_mv": 3000.0,
+      "predicted_label": "OK"
+    },
+    {
+      "node_id": "temp_09",
+      "risk_battery_low": 0.0025704139842996966,
+      "pm25": 0.0,
+      "temp_tenths": 214.0,
+      "noise_db": 0.0,
+      "battery_mv": 3000.0,
+      "predicted_label": "OK"
+    },
+    {
+      "node_id": "temp_0a",
+      "risk_battery_low": 0.0025704139842996966,
+      "pm25": 0.0,
+      "temp_tenths": 234.0,
+      "noise_db": 0.0,
+      "battery_mv": 3000.0,
+      "predicted_label": "OK"
+    },
+    {
+      "node_id": "noise_14",
+      "risk_battery_low": 0.9562695933897516,
+      "pm25": 0.0,
+      "temp_tenths": 0.0,
+      "noise_db": 28.0,
+      "battery_mv": 1.0,
+      "predicted_label": "FAIL"
+    },
+    {
+      "node_id": "temp_0c",
+      "risk_battery_low": 0.812334422544037,
+      "pm25": 0.0,
+      "temp_tenths": 291.0,
+      "noise_db": 0.0,
+      "battery_mv": 1.0,
+      "predicted_label": "FAIL"
+    },
+    {
+      "node_id": "poll_08",
+      "risk_battery_low": 0.0,
+      "pm25": 123.0,
+      "temp_tenths": 0.0,
+      "noise_db": 0.0,
+      "battery_mv": 3000.0,
+      "predicted_label": "OK"
+    },
+    {
+      "node_id": "noise_16",
+      "risk_battery_low": 0.6581226040697579,
+      "pm25": 0.0,
+      "temp_tenths": 0.0,
+      "noise_db": 42.0,
+      "battery_mv": 1.0,
+      "predicted_label": "FAIL"
+    },
+    {
+      "node_id": "poll_02",
+      "risk_battery_low": 0.011442197498820708,
+      "pm25": 74.0,
+      "temp_tenths": 0.0,
+      "noise_db": 0.0,
+      "battery_mv": 3000.0,
+      "predicted_label": "OK"
+    },
+    {
+      "node_id": "temp_0e",
+      "risk_battery_low": 0.0025704139842996966,
+      "pm25": 0.0,
+      "temp_tenths": 213.0,
+      "noise_db": 0.0,
+      "battery_mv": 3000.0,
+      "predicted_label": "OK"
+    },
+    {
+      "node_id": "noise_11",
+      "risk_battery_low": 0.0,
+      "pm25": 0.0,
+      "temp_tenths": 0.0,
+      "noise_db": 95.0,
+      "battery_mv": 3000.0,
+      "predicted_label": "OK"
+    },
+    {
+      "node_id": "noise_15",
+      "risk_battery_low": 0.05238463083650756,
+      "pm25": 0.0,
+      "temp_tenths": 0.0,
+      "noise_db": 55.0,
+      "battery_mv": 3000.0,
+      "predicted_label": "OK"
+    },
+    {
+      "node_id": "poll_04",
+      "risk_battery_low": 0.0,
+      "pm25": 113.0,
+      "temp_tenths": 0.0,
+      "noise_db": 0.0,
+      "battery_mv": 3000.0,
+      "predicted_label": "OK"
+    },
+    {
+      "node_id": "noise_13",
+      "risk_battery_low": 0.06691672150098628,
+      "pm25": 0.0,
+      "temp_tenths": 0.0,
+      "noise_db": 46.0,
+      "battery_mv": 3000.0,
+      "predicted_label": "OK"
+    },
+    {
+      "node_id": "noise_12",
+      "risk_battery_low": 0.08280706657789275,
+      "pm25": 0.0,
+      "temp_tenths": 0.0,
+      "noise_db": 46.0,
+      "battery_mv": 3000.0,
+      "predicted_label": "OK"
+    },
+    {
+      "node_id": "poll_03",
+      "risk_battery_low": 4.706792992371108e-05,
+      "pm25": 96.0,
+      "temp_tenths": 0.0,
+      "noise_db": 0.0,
+      "battery_mv": 3000.0,
+      "predicted_label": "OK"
+    },
+    {
+      "node_id": "noise_10",
+      "risk_battery_low": 0.0008620047000701328,
+      "pm25": 0.0,
+      "temp_tenths": 0.0,
+      "noise_db": 73.0,
+      "battery_mv": 3000.0,
+      "predicted_label": "OK"
+    },
+    {
+      "node_id": "poll_07",
+      "risk_battery_low": 0.8017741245274216,
+      "pm25": 64.0,
+      "temp_tenths": 0.0,
+      "noise_db": 0.0,
+      "battery_mv": 1.0,
+      "predicted_label": "FAIL"
+    },
+    {
+      "node_id": "poll_05",
+      "risk_battery_low": 0.0049641025441732895,
+      "pm25": 92.0,
+      "temp_tenths": 0.0,
+      "noise_db": 0.0,
+      "battery_mv": 3000.0,
+      "predicted_label": "OK"
+    }
+  ],
+  "model": "RandomForest"
+}

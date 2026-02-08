@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Start Cooja (SmartCity)
+Comment=Launch Cooja with SmartCity.csc using 2GB heap
+Exec=bash -c 'cd /home/praneeth/contiki-ng/tools/cooja && ./gradlew run -Pargs="-Xmx2g /home/praneeth/downloads/IOT/SmartCity.csc"'
+Terminal=true
+Icon=utilities-terminal
+Categories=Development;

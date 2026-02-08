@@ -1,0 +1,512 @@
+[
+  {
+    "id": "62e2ce239d76a4da",
+    "type": "tab",
+    "label": "Smart City IoT",
+    "disabled": false,
+    "info": ""
+  },
+  {
+    "id": "dashboard-tab",
+    "type": "ui_tab",
+    "name": "Smart City",
+    "icon": "dashboard",
+    "order": 1
+  },
+  {
+    "id": "group-live",
+    "type": "ui_group",
+    "name": "Live Sensor Readings",
+    "tab": "dashboard-tab",
+    "order": 1,
+    "disp": true,
+    "width": 24
+  },
+  {
+    "id": "group-gauges",
+    "type": "ui_group",
+    "name": "Real-Time Gauges",
+    "tab": "dashboard-tab",
+    "order": 2,
+    "disp": true,
+    "width": 24
+  },
+  {
+    "id": "group-alerts",
+    "type": "ui_group",
+    "name": "Alerts and Predictions",
+    "tab": "dashboard-tab",
+    "order": 4,
+    "disp": true,
+    "width": 24
+  },
+  {
+    "id": "inject-latest",
+    "type": "inject",
+    "z": "62e2ce239d76a4da",
+    "name": "poll every 5s",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "5",
+    "once": true,
+    "onceDelay": "2",
+    "x": 130,
+    "y": 80,
+    "wires": [
+      [
+        "http-latest"
+      ]
+    ]
+  },
+  {
+    "id": "http-latest",
+    "type": "http request",
+    "z": "62e2ce239d76a4da",
+    "name": "GET /api/metrics/latest",
+    "method": "GET",
+    "ret": "txt",
+    "url": "http://127.0.0.1:5001/api/metrics/latest",
+    "x": 350,
+    "y": 80,
+    "wires": [
+      [
+        "parse-latest"
+      ]
+    ]
+  },
+  {
+    "id": "parse-latest",
+    "type": "function",
+    "z": "62e2ce239d76a4da",
+    "name": "parse JSON",
+    "func": "try {\n  var d = msg.payload;\n  if (typeof d === 'string') d = JSON.parse(d);\n  if (!Array.isArray(d)) d = [];\n  msg.payload = d;\n} catch(e) { msg.payload = []; }\nreturn msg;",
+    "outputs": 1,
+    "x": 560,
+    "y": 80,
+    "wires": [
+      [
+        "fmt-live-table",
+        "fmt-gauges"
+      ]
+    ]
+  },
+  {
+    "id": "fmt-live-table",
+    "type": "function",
+    "z": "62e2ce239d76a4da",
+    "name": "build HTML table",
+    "func": "var rows = msg.payload;\nvar html = '<style>table.sc{width:100%;border-collapse:collapse;font-family:monospace;font-size:13px} table.sc th{background:#1a237e;color:#fff;padding:6px 10px;text-align:left} table.sc td{padding:5px 10px;border-bottom:1px solid #333} table.sc tr:nth-child(even){background:#1e1e1e} table.sc tr:nth-child(odd){background:#2a2a2a} .warn{color:#ff9800;font-weight:bold} .crit{color:#f44336;font-weight:bold} .ok{color:#4caf50}</style>';\nhtml += '<table class=\"sc\"><tr><th>Node</th><th>PM2.5</th><th>Temp C</th><th>Noise dB</th><th>Battery mV</th><th>Status</th></tr>';\nfor (var i = 0; i < rows.length; i++) {\n  var r = rows[i];\n  var nid = r['node_id'] || '?';\n  var batt = r['battery_mv'] || 0;\n  var pm = (r['pm25'] !== null && r['pm25'] !== undefined) ? r['pm25'] : '-';\n  var temp = (r['temp_tenths'] !== null && r['temp_tenths'] !== undefined) ? (r['temp_tenths'] / 10).toFixed(1) : '-';\n  var noise = (r['noise_db'] !== null && r['noise_db'] !== undefined) ? r['noise_db'] : '-';\n  var cls = 'ok', st = 'OK';\n  if (batt < 500) { cls = 'crit'; st = 'CRITICAL'; }\n  else if (batt < 1500) { cls = 'warn'; st = 'LOW'; }\n  html += '<tr><td>' + nid + '</td><td>' + pm + '</td><td>' + temp + '</td><td>' + noise + '</td><td class=\"' + cls + '\">' + batt + '</td><td class=\"' + cls + '\">' + st + '</td></tr>';\n}\nhtml += '</table>';\nmsg.payload = html;\nreturn msg;",
+    "outputs": 1,
+    "x": 770,
+    "y": 60,
+    "wires": [
+      [
+        "ui-live-template"
+      ]
+    ]
+  },
+  {
+    "id": "ui-live-template",
+    "type": "ui_template",
+    "z": "62e2ce239d76a4da",
+    "group": "group-live",
+    "name": "Live Readings Table",
+    "order": 1,
+    "width": 24,
+    "height": 10,
+    "format": "<div ng-bind-html=\"msg.payload\"></div>",
+    "storeOutMessages": true,
+    "fwdInMessages": true,
+    "resendOnRefresh": true,
+    "templateScope": "local",
+    "className": "",
+    "x": 990,
+    "y": 60,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "fmt-gauges",
+    "type": "function",
+    "z": "62e2ce239d76a4da",
+    "name": "calc averages",
+    "func": "var rows = msg.payload;\nvar sumPm=0,cPm=0,sumTemp=0,cTemp=0,sumNoise=0,cNoise=0,sumBatt=0,cBatt=0;\nfor (var i=0;i<rows.length;i++) {\n  var r=rows[i];\n  if (r['pm25']!==null&&r['pm25']!==undefined) {sumPm+=r['pm25'];cPm++;}\n  if (r['temp_tenths']!==null&&r['temp_tenths']!==undefined) {sumTemp+=r['temp_tenths']/10;cTemp++;}\n  if (r['noise_db']!==null&&r['noise_db']!==undefined) {sumNoise+=r['noise_db'];cNoise++;}\n  if (r['battery_mv']!==null&&r['battery_mv']!==undefined) {sumBatt+=r['battery_mv'];cBatt++;}\n}\nvar m1={payload:cPm?Math.round(sumPm/cPm):0};\nvar m2={payload:cTemp?Math.round(sumTemp/cTemp*10)/10:0};\nvar m3={payload:cNoise?Math.round(sumNoise/cNoise):0};\nvar m4={payload:cBatt?Math.round(sumBatt/cBatt):0};\nvar m5={payload:rows.length};\nreturn [m1,m2,m3,m4,m5];",
+    "outputs": 5,
+    "x": 770,
+    "y": 100,
+    "wires": [
+      [
+        "gauge-pm25"
+      ],
+      [
+        "gauge-temp"
+      ],
+      [
+        "gauge-noise"
+      ],
+      [
+        "gauge-batt"
+      ],
+      [
+        "text-count"
+      ]
+    ]
+  },
+  {
+    "id": "gauge-pm25",
+    "type": "ui_gauge",
+    "z": "62e2ce239d76a4da",
+    "name": "Avg PM2.5",
+    "group": "group-gauges",
+    "order": 1,
+    "width": 6,
+    "height": 4,
+    "gtype": "gage",
+    "title": "Avg PM2.5",
+    "label": "ug/m3",
+    "format": "{{value}}",
+    "min": 0,
+    "max": "200",
+    "colors": [
+      "#4caf50",
+      "#ff9800",
+      "#f44336"
+    ],
+    "seg1": "50",
+    "seg2": "100",
+    "className": "",
+    "x": 990,
+    "y": 80,
+    "wires": []
+  },
+  {
+    "id": "gauge-temp",
+    "type": "ui_gauge",
+    "z": "62e2ce239d76a4da",
+    "name": "Avg Temp",
+    "group": "group-gauges",
+    "order": 2,
+    "width": 6,
+    "height": 4,
+    "gtype": "gage",
+    "title": "Avg Temperature",
+    "label": "C",
+    "format": "{{value}}",
+    "min": 0,
+    "max": "50",
+    "colors": [
+      "#2196f3",
+      "#4caf50",
+      "#f44336"
+    ],
+    "seg1": "15",
+    "seg2": "35",
+    "className": "",
+    "x": 990,
+    "y": 110,
+    "wires": []
+  },
+  {
+    "id": "gauge-noise",
+    "type": "ui_gauge",
+    "z": "62e2ce239d76a4da",
+    "name": "Avg Noise",
+    "group": "group-gauges",
+    "order": 3,
+    "width": 6,
+    "height": 4,
+    "gtype": "gage",
+    "title": "Avg Noise",
+    "label": "dB",
+    "format": "{{value}}",
+    "min": 0,
+    "max": "120",
+    "colors": [
+      "#4caf50",
+      "#ff9800",
+      "#f44336"
+    ],
+    "seg1": "60",
+    "seg2": "85",
+    "className": "",
+    "x": 990,
+    "y": 140,
+    "wires": []
+  },
+  {
+    "id": "gauge-batt",
+    "type": "ui_gauge",
+    "z": "62e2ce239d76a4da",
+    "name": "Avg Battery",
+    "group": "group-gauges",
+    "order": 4,
+    "width": 6,
+    "height": 4,
+    "gtype": "gage",
+    "title": "Avg Battery",
+    "label": "mV",
+    "format": "{{value}}",
+    "min": 0,
+    "max": "3300",
+    "colors": [
+      "#f44336",
+      "#ff9800",
+      "#4caf50"
+    ],
+    "seg1": "1000",
+    "seg2": "2000",
+    "className": "",
+    "x": 990,
+    "y": 170,
+    "wires": []
+  },
+  {
+    "id": "text-count",
+    "type": "ui_text",
+    "z": "62e2ce239d76a4da",
+    "group": "group-live",
+    "order": 0,
+    "width": 6,
+    "height": 1,
+    "name": "Active Nodes",
+    "label": "Active Nodes",
+    "format": "{{msg.payload}}",
+    "layout": "row-spread",
+    "className": "",
+    "x": 990,
+    "y": 200,
+    "wires": []
+  },
+  {
+    "id": "inject-alerts",
+    "type": "inject",
+    "z": "62e2ce239d76a4da",
+    "name": "poll alerts 5s",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "5",
+    "once": true,
+    "onceDelay": "5",
+    "x": 130,
+    "y": 440,
+    "wires": [
+      [
+        "http-alerts"
+      ]
+    ]
+  },
+  {
+    "id": "http-alerts",
+    "type": "http request",
+    "z": "62e2ce239d76a4da",
+    "name": "GET /api/alerts",
+    "method": "GET",
+    "ret": "txt",
+    "url": "http://127.0.0.1:5001/api/alerts?pm25=50&noise=90",
+    "x": 340,
+    "y": 440,
+    "wires": [
+      [
+        "fmt-alerts"
+      ]
+    ]
+  },
+  {
+    "id": "fmt-alerts",
+    "type": "function",
+    "z": "62e2ce239d76a4da",
+    "name": "build alerts HTML",
+    "func": "var rows;\ntry {\n  var d = msg.payload;\n  if (typeof d === 'string') d = JSON.parse(d);\n  rows = Array.isArray(d) ? d : [];\n} catch(e) { rows = []; }\nvar html = '<style>.at{width:100%;border-collapse:collapse;font-family:monospace;font-size:13px} .at th{background:#b71c1c;color:#fff;padding:6px 10px;text-align:left} .at td{padding:5px 10px;border-bottom:1px solid #444} .at tr:nth-child(even){background:#2a1a1a} .at tr:nth-child(odd){background:#1e1e1e} .hi{color:#ff5252;font-weight:bold}</style>';\nif (rows.length === 0) {\n  html += '<p style=\"color:#4caf50;font-size:16px\">No active alerts</p>';\n} else {\n  html += '<table class=\"at\"><tr><th>Node</th><th>PM2.5</th><th>Noise dB</th><th>Battery mV</th></tr>';\n  for (var i = 0; i < Math.min(rows.length, 15); i++) {\n    var r = rows[i];\n    var pm = (r['pm25'] !== null && r['pm25'] !== undefined) ? r['pm25'] : '-';\n    var noise = (r['noise_db'] !== null && r['noise_db'] !== undefined) ? r['noise_db'] : '-';\n    var batt = r['battery_mv'] || '-';\n    var pmC = (pm > 50) ? 'hi' : '';\n    var noC = (noise > 90) ? 'hi' : '';\n    html += '<tr><td>' + (r['node_id']||'?') + '</td><td class=\"'+pmC+'\">' + pm + '</td><td class=\"'+noC+'\">' + noise + '</td><td>' + batt + '</td></tr>';\n  }\n  html += '</table>';\n  html += '<p style=\"color:#ff9800\">' + rows.length + ' alerts total</p>';\n}\nmsg.payload = html;\nreturn msg;",
+    "outputs": 1,
+    "x": 560,
+    "y": 440,
+    "wires": [
+      [
+        "ui-alerts-template"
+      ]
+    ]
+  },
+  {
+    "id": "ui-alerts-template",
+    "type": "ui_template",
+    "z": "62e2ce239d76a4da",
+    "group": "group-alerts",
+    "name": "Alerts Table",
+    "order": 1,
+    "width": 24,
+    "height": 8,
+    "format": "<div ng-bind-html=\"msg.payload\"></div>",
+    "storeOutMessages": true,
+    "fwdInMessages": true,
+    "resendOnRefresh": true,
+    "templateScope": "local",
+    "className": "",
+    "x": 790,
+    "y": 440,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "inject-pred",
+    "type": "inject",
+    "z": "62e2ce239d76a4da",
+    "name": "poll predictions 10s",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "10",
+    "once": true,
+    "onceDelay": "6",
+    "x": 150,
+    "y": 520,
+    "wires": [
+      [
+        "http-pred"
+      ]
+    ]
+  },
+  {
+    "id": "http-pred",
+    "type": "http request",
+    "z": "62e2ce239d76a4da",
+    "name": "GET /api/predictions",
+    "method": "GET",
+    "ret": "txt",
+    "url": "http://127.0.0.1:5001/api/predictions",
+    "x": 370,
+    "y": 520,
+    "wires": [
+      [
+        "fmt-pred"
+      ]
+    ]
+  },
+  {
+    "id": "fmt-pred",
+    "type": "function",
+    "z": "62e2ce239d76a4da",
+    "name": "build predictions HTML",
+    "func": "var data;\ntry {\n  var d = msg.payload;\n  if (typeof d === 'string') d = JSON.parse(d);\n  data = d || {};\n} catch(e) { data = {}; }\nvar html = '<style>.pt{width:100%;border-collapse:collapse;font-family:monospace;font-size:13px} .pt th{background:#1b5e20;color:#fff;padding:6px 10px;text-align:left} .pt td{padding:5px 10px;border-bottom:1px solid #444} .pt tr:nth-child(even){background:#1a2a1a} .pt tr:nth-child(odd){background:#1e1e1e} .fail{color:#f44336;font-weight:bold} .ok{color:#4caf50} .st{font-size:15px;margin:8px 0;padding:8px;background:#263238;border-radius:4px}</style>';\nif (data.report) {\n  var acc = data.report.accuracy ? (data.report.accuracy*100).toFixed(1)+'%' : 'N/A';\n  html += '<div class=\"st\">ML Model: ' + (data.model||'RandomForest') + ' | Accuracy: ' + acc + '</div>';\n}\nvar preds = data.predictions || (Array.isArray(data) ? data : []);\nif (preds.length > 0) {\n  html += '<table class=\"pt\"><tr><th>Node</th><th>PM2.5</th><th>Battery mV</th><th>Prediction</th></tr>';\n  for (var i = 0; i < Math.min(preds.length, 21); i++) {\n    var r = preds[i];\n    var cls = (r['predicted_label']==='FAIL'||r['predicted_label']==='LOW') ? 'fail' : 'ok';\n    html += '<tr><td>'+(r['node_id']||'?')+'</td><td>'+(r['pm25']!==undefined?r['pm25']:'-')+'</td><td>'+(r['battery_mv']!==undefined?r['battery_mv']:'-')+'</td><td class=\"'+cls+'\">'+(r['predicted_label']||'?')+'</td></tr>';\n  }\n  html += '</table>';\n} else {\n  html += '<p style=\"color:#ff9800\">No predictions available yet</p>';\n}\nmsg.payload = html;\nreturn msg;",
+    "outputs": 1,
+    "x": 580,
+    "y": 520,
+    "wires": [
+      [
+        "ui-pred-template"
+      ]
+    ]
+  },
+  {
+    "id": "ui-pred-template",
+    "type": "ui_template",
+    "z": "62e2ce239d76a4da",
+    "group": "group-alerts",
+    "name": "Predictions Table",
+    "order": 2,
+    "width": 24,
+    "height": 8,
+    "format": "<div ng-bind-html=\"msg.payload\"></div>",
+    "storeOutMessages": true,
+    "fwdInMessages": true,
+    "resendOnRefresh": true,
+    "templateScope": "local",
+    "className": "",
+    "x": 810,
+    "y": 520,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "group-charts2",
+    "type": "ui_group",
+    "name": "Time-Series Charts",
+    "tab": "dashboard-tab",
+    "order": 3,
+    "disp": true,
+    "width": 24
+  },
+  {
+    "id": "inject-charts",
+    "type": "inject",
+    "z": "62e2ce239d76a4da",
+    "name": "poll charts 5s",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "5",
+    "once": true,
+    "onceDelay": "4",
+    "x": 130,
+    "y": 300,
+    "wires": [
+      [
+        "http-charts"
+      ]
+    ]
+  },
+  {
+    "id": "http-charts",
+    "type": "http request",
+    "z": "62e2ce239d76a4da",
+    "name": "GET /api/metrics/latest",
+    "method": "GET",
+    "ret": "txt",
+    "url": "http://127.0.0.1:5001/api/metrics/latest",
+    "x": 350,
+    "y": 300,
+    "wires": [
+      [
+        "fmt-charts"
+      ]
+    ]
+  },
+  {
+    "id": "fmt-charts",
+    "type": "function",
+    "z": "62e2ce239d76a4da",
+    "name": "build bar charts",
+    "func": "var rows;\ntry {\n  var d = msg.payload;\n  if (typeof d === 'string') d = JSON.parse(d);\n  rows = Array.isArray(d) ? d : [];\n} catch(e) { rows = []; }\n\nvar colors = ['#1f77b4','#ff7f0e','#2ca02c','#d62728','#9467bd','#8c564b','#e377c2','#17becf','#bcbd22','#7f7f7f','#aec7e8','#ffbb78','#98df8a','#ff9896','#c5b0d5','#c49c94','#f7b6d2','#c7c7c7','#dbdb8d','#9edae5','#393b79'];\n\nfunction makeBarChart(title, unit, field, divisor, maxVal) {\n  var html = '<div style=\"margin:10px 0\"><h3 style=\"color:#03a9f4;margin:5px 0\">' + title + '</h3>';\n  html += '<div style=\"display:flex;flex-wrap:wrap;gap:2px\">';\n  var items = [];\n  for (var i = 0; i < rows.length; i++) {\n    var r = rows[i];\n    var val = r[field];\n    if (val !== null && val !== undefined) {\n      items.push({name: r['node_id'] || '?', val: val / (divisor || 1)});\n    }\n  }\n  for (var j = 0; j < items.length; j++) {\n    var pct = Math.min(100, (items[j].val / maxVal) * 100);\n    var c = colors[j % colors.length];\n    var displayVal = divisor > 1 ? items[j].val.toFixed(1) : Math.round(items[j].val);\n    html += '<div style=\"flex:1;min-width:40px;max-width:80px;text-align:center;font-size:10px\">';\n    html += '<div style=\"height:80px;display:flex;align-items:flex-end;justify-content:center\">';\n    html += '<div style=\"width:100%;height:' + Math.max(3, pct) + '%;background:' + c + ';border-radius:3px 3px 0 0;min-height:3px\"></div>';\n    html += '</div>';\n    html += '<div style=\"color:#fff;font-weight:bold;padding:2px 0\">' + displayVal + '</div>';\n    html += '<div style=\"color:#999;font-size:9px;overflow:hidden;text-overflow:ellipsis\">' + items[j].name.replace(/^(poll_|temp_|noise_)/,'') + '</div>';\n    html += '</div>';\n  }\n  html += '</div>';\n  html += '<div style=\"color:#666;font-size:11px;margin-top:3px\">Unit: ' + unit + ' | ' + items.length + ' nodes</div></div>';\n  return html;\n}\n\nvar html = '<div style=\"font-family:sans-serif\">';\nhtml += makeBarChart('PM2.5 Pollution', 'ug/m3', 'pm25', 1, 150);\nhtml += makeBarChart('Temperature', 'deg C', 'temp_tenths', 10, 40);\nhtml += makeBarChart('Noise Level', 'dB', 'noise_db', 1, 100);\nhtml += makeBarChart('Battery Voltage', 'mV', 'battery_mv', 1, 3300);\nhtml += '</div>';\n\nmsg.payload = html;\nreturn msg;",
+    "outputs": 1,
+    "x": 570,
+    "y": 300,
+    "wires": [
+      [
+        "ui-charts-template"
+      ]
+    ]
+  },
+  {
+    "id": "ui-charts-template",
+    "type": "ui_template",
+    "z": "62e2ce239d76a4da",
+    "group": "group-charts2",
+    "name": "Bar Charts",
+    "order": 1,
+    "width": 24,
+    "height": 16,
+    "format": "<div>\n  <div id=\"chart-area\" style=\"min-height:400px\"></div>\n</div>\n<script>\n(function(scope) {\n  scope.$watch('msg', function(msg) {\n    if (!msg || !msg.payload) return;\n    var el = document.getElementById('chart-area');\n    if (el) el.innerHTML = msg.payload;\n  });\n})(scope);\n</script>",
+    "storeOutMessages": true,
+    "fwdInMessages": true,
+    "resendOnRefresh": true,
+    "templateScope": "local",
+    "className": "",
+    "x": 790,
+    "y": 300,
+    "wires": [
+      []
+    ]
+  }
+]
