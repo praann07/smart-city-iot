@@ -22,11 +22,50 @@ DB_PATH = Path(__file__).resolve().parents[1] / "backend" / "db" / "iot.db"
 OUT_DIR = Path(__file__).resolve().parent / "results"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# ── Node classification ──
-FAST_DRAIN = {"poll_07", "temp_0c", "noise_14", "noise_16"}
-ONE_HOP = {"poll_02", "poll_03", "poll_04", "poll_05",
-           "temp_09", "temp_0a", "temp_0b",
-           "noise_10", "noise_11", "noise_12"}
+
+def classify_nodes() -> dict:
+    """
+    Dynamically classify nodes from actual battery and rank data in the DB.
+
+    Returns a dict with keys:
+      fast_drain  - set of node_ids draining faster than median
+      one_hop     - set of node_ids with median rank == 256 (1 hop)
+      two_hop     - set of node_ids with median rank >= 512 (2+ hops)
+    """
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+
+    # Average battery drop per packet (MAX-MIN over all readings per node)
+    drain_rows = conn.execute(
+        """
+        SELECT node_id,
+               (MAX(battery_mv) - MIN(battery_mv)) * 1.0 / MAX(COUNT(*), 1) AS drop_per_pkt,
+               AVG(rank) AS avg_rank
+        FROM readings
+        GROUP BY node_id
+        """
+    ).fetchall()
+    conn.close()
+
+    if not drain_rows:
+        return {"fast_drain": set(), "one_hop": set(), "two_hop": set()}
+
+    drops = [r["drop_per_pkt"] or 0.0 for r in drain_rows]
+    median_drop = float(np.median(drops))
+
+    fast_drain, one_hop, two_hop = set(), set(), set()
+    for r in drain_rows:
+        nid = r["node_id"]
+        drop = r["drop_per_pkt"] or 0.0
+        avg_rank = r["avg_rank"] or 256
+        if drop > median_drop:
+            fast_drain.add(nid)
+        if avg_rank < 400:          # 256 ± tolerance = 1-hop
+            one_hop.add(nid)
+        elif avg_rank >= 400:       # 512 unit = 2-hop+
+            two_hop.add(nid)
+
+    return {"fast_drain": fast_drain, "one_hop": one_hop, "two_hop": two_hop}
 
 
 def load_energy():
@@ -122,19 +161,21 @@ def plot_battery_lifetime(battery_rows):
 
     fig, ax = plt.subplots(figsize=(12, 6))
 
-    # Plot one representative from each category
-    categories = {
-        "Healthy 1-hop (poll_02)": "poll_02",
-        "Healthy 2-hop (poll_06)": "poll_06",
-        "Fast-drain 1-hop (temp_0c)": "temp_0c",
-        "Fast-drain 2-hop (noise_16)": "noise_16",
-    }
-    colors = ["#2ecc71", "#3498db", "#e67e22", "#e74c3c"]
-
-    for (label, nid), color in zip(categories.items(), colors):
-        if nid in traces:
+    # Pick one representative from each dynamic category
+    cats = classify_nodes()
+    fd = sorted(cats["fast_drain"])
+    oh = sorted(cats["one_hop"] - cats["fast_drain"])
+    th = sorted(cats["two_hop"] - cats["fast_drain"])
+    candidates = [
+        ("Healthy 1-hop",  oh[0]  if oh  else None, "#2ecc71"),
+        ("Healthy 2-hop",  th[0]  if th  else None, "#3498db"),
+        ("Fast-drain",     fd[0]  if fd  else None, "#e74c3c"),
+        ("Fast-drain 2nd", fd[1]  if len(fd) > 1 else None, "#e67e22"),
+    ]
+    for (label, nid, color) in candidates:
+        if nid and nid in traces:
             ax.plot(traces[nid]["t"], traces[nid]["batt"],
-                    label=label, color=color, linewidth=1.5, alpha=0.8)
+                    label=f"{label} ({nid})", color=color, linewidth=1.5, alpha=0.8)
 
     # Danger threshold
     ax.axhline(y=2500, color="red", linestyle="--", alpha=0.5, label="Failure threshold (2500 mV)")
@@ -155,6 +196,10 @@ def plot_battery_lifetime(battery_rows):
 
 def plot_duty_cycle_breakdown(rows):
     """Stacked bar: CPU / LPM / Tx / Rx breakdown per node category."""
+    cats = classify_nodes()
+    FAST_DRAIN = cats["fast_drain"]
+    ONE_HOP    = cats["one_hop"]
+
     categories = {
         "Healthy\n1-hop": [],
         "Healthy\n2-hop": [],

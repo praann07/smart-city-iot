@@ -1,202 +1,207 @@
 {
-  "generated_ts": 1770537420,
+  "generated_ts": 1771567834,
   "source": "model",
-  "report": {
-    "accuracy": 0.946,
-    "model": "RandomForest",
-    "features": 6,
-    "report_text": "              precision    recall  f1-score   support\n\n           0      0.954     0.984     0.969      5140\n           1      0.894     0.732     0.805       918\n\n    accuracy                          0.946      6058\n   macro avg      0.924     0.858     0.887      6058\nweighted avg      0.945     0.946     0.944      6058\n"
+  "report": "              precision    recall  f1-score   support\n\n           0      0.796     0.709     0.750     18364\n           1      0.151     0.223     0.180      4283\n\n    accuracy                          0.617     22647\n   macro avg      0.474     0.466     0.465     22647\nweighted avg      0.674     0.617     0.642     22647\n",
+  "feature_importances": {
+    "battery_drop_rate": 0.44369090886268686,
+    "rank": 0.34067671590888715,
+    "pm25_rolling": 0.07780642058510279,
+    "noise_rolling": 0.03851296277190026,
+    "temp_rolling": 0.026823400665021462,
+    "noise_db": 0.02408651023372915,
+    "temp_tenths": 0.022566633622900404,
+    "pm25": 0.022114436242249937,
+    "congestion": 0.003722011107521992
   },
   "predictions": [
     {
       "node_id": "temp_0f",
-      "risk_battery_low": 0.005587640656977403,
+      "risk_battery_low": 0.0011215861096921843,
       "pm25": 0.0,
       "temp_tenths": 239.0,
       "noise_db": 0.0,
       "battery_mv": 3000.0,
-      "predicted_label": "OK"
+      "rank": 512
     },
     {
       "node_id": "temp_0b",
-      "risk_battery_low": 0.0017831102941329082,
+      "risk_battery_low": 0.008260182584269662,
       "pm25": 0.0,
       "temp_tenths": 251.0,
       "noise_db": 0.0,
       "battery_mv": 3000.0,
-      "predicted_label": "OK"
+      "rank": 256
     },
     {
       "node_id": "poll_06",
-      "risk_battery_low": 0.1037502781015784,
+      "risk_battery_low": 0.016352396928014365,
       "pm25": 73.0,
       "temp_tenths": 0.0,
       "noise_db": 0.0,
       "battery_mv": 3000.0,
-      "predicted_label": "OK"
-    },
-    {
-      "node_id": "temp_0d",
-      "risk_battery_low": 0.005859887668510222,
-      "pm25": 0.0,
-      "temp_tenths": 245.0,
-      "noise_db": 0.0,
-      "battery_mv": 3000.0,
-      "predicted_label": "OK"
+      "rank": 512
     },
     {
       "node_id": "temp_09",
-      "risk_battery_low": 0.0025704139842996966,
+      "risk_battery_low": 0.4646170548284977,
       "pm25": 0.0,
       "temp_tenths": 214.0,
       "noise_db": 0.0,
       "battery_mv": 3000.0,
-      "predicted_label": "OK"
+      "rank": 256
+    },
+    {
+      "node_id": "temp_0d",
+      "risk_battery_low": 0.0013444025089791717,
+      "pm25": 0.0,
+      "temp_tenths": 245.0,
+      "noise_db": 0.0,
+      "battery_mv": 3000.0,
+      "rank": 512
     },
     {
       "node_id": "temp_0a",
-      "risk_battery_low": 0.0025704139842996966,
+      "risk_battery_low": 0.6311655228366131,
       "pm25": 0.0,
       "temp_tenths": 234.0,
       "noise_db": 0.0,
       "battery_mv": 3000.0,
-      "predicted_label": "OK"
-    },
-    {
-      "node_id": "noise_14",
-      "risk_battery_low": 0.9562695933897516,
-      "pm25": 0.0,
-      "temp_tenths": 0.0,
-      "noise_db": 28.0,
-      "battery_mv": 1.0,
-      "predicted_label": "FAIL"
+      "rank": 256
     },
     {
       "node_id": "temp_0c",
-      "risk_battery_low": 0.812334422544037,
+      "risk_battery_low": 0.05159216610425864,
       "pm25": 0.0,
       "temp_tenths": 291.0,
       "noise_db": 0.0,
       "battery_mv": 1.0,
-      "predicted_label": "FAIL"
+      "rank": 512
     },
     {
-      "node_id": "poll_08",
-      "risk_battery_low": 0.0,
-      "pm25": 123.0,
+      "node_id": "noise_14",
+      "risk_battery_low": 0.002094069452297789,
+      "pm25": 0.0,
       "temp_tenths": 0.0,
-      "noise_db": 0.0,
-      "battery_mv": 3000.0,
-      "predicted_label": "OK"
+      "noise_db": 28.0,
+      "battery_mv": 1.0,
+      "rank": 256
     },
     {
       "node_id": "noise_16",
-      "risk_battery_low": 0.6581226040697579,
+      "risk_battery_low": 0.17227807246879578,
       "pm25": 0.0,
       "temp_tenths": 0.0,
       "noise_db": 42.0,
       "battery_mv": 1.0,
-      "predicted_label": "FAIL"
-    },
-    {
-      "node_id": "poll_02",
-      "risk_battery_low": 0.011442197498820708,
-      "pm25": 74.0,
-      "temp_tenths": 0.0,
-      "noise_db": 0.0,
-      "battery_mv": 3000.0,
-      "predicted_label": "OK"
+      "rank": 512
     },
     {
       "node_id": "temp_0e",
-      "risk_battery_low": 0.0025704139842996966,
+      "risk_battery_low": 0.0014913146813788163,
       "pm25": 0.0,
       "temp_tenths": 213.0,
       "noise_db": 0.0,
       "battery_mv": 3000.0,
-      "predicted_label": "OK"
+      "rank": 512
+    },
+    {
+      "node_id": "poll_08",
+      "risk_battery_low": 0.3350941348609543,
+      "pm25": 123.0,
+      "temp_tenths": 0.0,
+      "noise_db": 0.0,
+      "battery_mv": 3000.0,
+      "rank": 512
+    },
+    {
+      "node_id": "poll_02",
+      "risk_battery_low": 0.6435956579329026,
+      "pm25": 74.0,
+      "temp_tenths": 0.0,
+      "noise_db": 0.0,
+      "battery_mv": 3000.0,
+      "rank": 256
     },
     {
       "node_id": "noise_11",
-      "risk_battery_low": 0.0,
+      "risk_battery_low": 0.9086060619511045,
       "pm25": 0.0,
       "temp_tenths": 0.0,
       "noise_db": 95.0,
       "battery_mv": 3000.0,
-      "predicted_label": "OK"
+      "rank": 256
     },
     {
       "node_id": "noise_15",
-      "risk_battery_low": 0.05238463083650756,
+      "risk_battery_low": 0.01137557882140058,
       "pm25": 0.0,
       "temp_tenths": 0.0,
       "noise_db": 55.0,
       "battery_mv": 3000.0,
-      "predicted_label": "OK"
+      "rank": 512
     },
     {
       "node_id": "poll_04",
-      "risk_battery_low": 0.0,
+      "risk_battery_low": 0.058034594167448425,
       "pm25": 113.0,
       "temp_tenths": 0.0,
       "noise_db": 0.0,
       "battery_mv": 3000.0,
-      "predicted_label": "OK"
+      "rank": 256
     },
     {
       "node_id": "noise_13",
-      "risk_battery_low": 0.06691672150098628,
+      "risk_battery_low": 0.13683907955907545,
       "pm25": 0.0,
       "temp_tenths": 0.0,
       "noise_db": 46.0,
       "battery_mv": 3000.0,
-      "predicted_label": "OK"
+      "rank": 512
     },
     {
       "node_id": "noise_12",
-      "risk_battery_low": 0.08280706657789275,
+      "risk_battery_low": 0.0429534809410049,
       "pm25": 0.0,
       "temp_tenths": 0.0,
       "noise_db": 46.0,
       "battery_mv": 3000.0,
-      "predicted_label": "OK"
-    },
-    {
-      "node_id": "poll_03",
-      "risk_battery_low": 4.706792992371108e-05,
-      "pm25": 96.0,
-      "temp_tenths": 0.0,
-      "noise_db": 0.0,
-      "battery_mv": 3000.0,
-      "predicted_label": "OK"
+      "rank": 256
     },
     {
       "node_id": "noise_10",
-      "risk_battery_low": 0.0008620047000701328,
+      "risk_battery_low": 0.15805217107985225,
       "pm25": 0.0,
       "temp_tenths": 0.0,
       "noise_db": 73.0,
       "battery_mv": 3000.0,
-      "predicted_label": "OK"
+      "rank": 512
     },
     {
-      "node_id": "poll_07",
-      "risk_battery_low": 0.8017741245274216,
-      "pm25": 64.0,
+      "node_id": "poll_03",
+      "risk_battery_low": 0.8777622911994681,
+      "pm25": 96.0,
       "temp_tenths": 0.0,
       "noise_db": 0.0,
-      "battery_mv": 1.0,
-      "predicted_label": "FAIL"
+      "battery_mv": 3000.0,
+      "rank": 256
     },
     {
       "node_id": "poll_05",
-      "risk_battery_low": 0.0049641025441732895,
+      "risk_battery_low": 0.020627150798891245,
       "pm25": 92.0,
       "temp_tenths": 0.0,
       "noise_db": 0.0,
       "battery_mv": 3000.0,
-      "predicted_label": "OK"
+      "rank": 256
+    },
+    {
+      "node_id": "poll_07",
+      "risk_battery_low": 0.002276924837453586,
+      "pm25": 64.0,
+      "temp_tenths": 0.0,
+      "noise_db": 0.0,
+      "battery_mv": 1.0,
+      "rank": 512
     }
-  ],
-  "model": "RandomForest"
+  ]
 }

@@ -6,10 +6,10 @@
     <motedelay_us>1000000</motedelay_us>
     <radiomedium>
       org.contikios.cooja.radiomediums.UDGM
-      <transmitting_range>50.0</transmitting_range>
-      <interference_range>100.0</interference_range>
-      <success_ratio_tx>1.0</success_ratio_tx>
-      <success_ratio_rx>1.0</success_ratio_rx>
+      <transmitting_range>35.0</transmitting_range>
+      <interference_range>70.0</interference_range>
+      <success_ratio_tx>0.9</success_ratio_tx>
+      <success_ratio_rx>0.9</success_ratio_rx>
     </radiomedium>
     <events>
       <logoutput>40000</logoutput>
@@ -17,7 +17,7 @@
     <motetype>
       org.contikios.cooja.contikimote.ContikiMoteType
       <description>Cooja Mote Type #1</description>
-      <source>[CONTIKI_DIR]/examples/rpl-border-router/border-router.c</source>
+      <source>[CONFIG_DIR]/contiki-ng/examples/rpl-border-router/border-router.c</source>
       <commands>$(MAKE) -j$(CPUS) border-router.cooja TARGET=cooja</commands>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.Battery</moteinterface>
@@ -49,7 +49,7 @@
     <motetype>
       org.contikios.cooja.contikimote.ContikiMoteType
       <description>Cooja Mote Type #2</description>
-      <source>[CONTIKI_DIR]/examples/smart-city/pollution-node.c</source>
+      <source>[CONFIG_DIR]/contiki-ng/examples/smart-city/pollution-node.c</source>
       <commands>$(MAKE) -j$(CPUS) pollution-node.cooja TARGET=cooja</commands>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.Battery</moteinterface>
@@ -141,7 +141,7 @@
     <motetype>
       org.contikios.cooja.contikimote.ContikiMoteType
       <description>Cooja Mote Type #3</description>
-      <source>[CONTIKI_DIR]/examples/smart-city/temperature-node.c</source>
+      <source>[CONFIG_DIR]/contiki-ng/examples/smart-city/temperature-node.c</source>
       <commands>$(MAKE) -j$(CPUS) temperature-node.cooja TARGET=cooja</commands>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.Battery</moteinterface>
@@ -233,7 +233,7 @@
     <motetype>
       org.contikios.cooja.contikimote.ContikiMoteType
       <description>Cooja Mote Type #4</description>
-      <source>[CONTIKI_DIR]/examples/smart-city/noise-node.c</source>
+      <source>[CONFIG_DIR]/contiki-ng/examples/smart-city/noise-node.c</source>
       <commands>$(MAKE) -j$(CPUS) noise-node.cooja TARGET=cooja</commands>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.Battery</moteinterface>
@@ -370,7 +370,7 @@
       <notes>Enter notes here</notes>
       <decorations>true</decorations>
     </plugin_config>
-    <bounds x="335" y="0" height="160" width="163" z="2" />
+    <bounds x="335" y="0" height="160" width="163" />
   </plugin>
   <plugin>
     org.contikios.cooja.plugins.Visualizer
@@ -395,7 +395,6 @@
   </plugin>
   <plugin>
     org.contikios.cooja.plugins.PowerTracker
-    <plugin_config />
     <bounds x="502" y="0" height="240" width="320" z="7" />
   </plugin>
   <plugin>
@@ -405,7 +404,7 @@
       <formatted_time />
       <coloring />
     </plugin_config>
-    <bounds x="337" y="160" height="240" width="161" z="1" />
+    <bounds x="337" y="160" height="240" width="161" z="2" />
   </plugin>
   <plugin>
     org.contikios.cooja.serialsocket.SerialSocketServer
@@ -414,6 +413,6 @@
       <port>60003</port>
       <bound>false</bound>
     </plugin_config>
-    <bounds x="0" y="0" height="126" width="362" />
+    <bounds x="0" y="0" height="126" width="362" z="1" />
   </plugin>
 </simconf>

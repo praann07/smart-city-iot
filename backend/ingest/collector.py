@@ -4,6 +4,7 @@ import json
 import logging
 import signal
 import sqlite3
+import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -41,6 +42,11 @@ def normalize_payload(raw: Dict[str, Any]) -> Dict[str, Any]:
       "node_ts": raw.get("timestamp"),
       "parent": raw.get("parent"),
       "rank": raw.get("rank"),
+      # energest fields emitted by enhanced motes (None if old firmware)
+      "cpu_ms": raw.get("cpu_ms"),
+      "lpm_ms": raw.get("lpm_ms"),
+      "tx_ms":  raw.get("tx_ms"),
+      "rx_ms":  raw.get("rx_ms"),
   }
 
 
@@ -59,22 +65,52 @@ class DBWriter:
         """,
         batch,
     )
+    # Write energest data to energy_samples when mote sends it
+    energy_rows = [
+        r for r in batch
+        if r.get("cpu_ms") is not None and r.get("tx_ms") is not None
+    ]
+    if energy_rows:
+      cursor.executemany(
+          """
+          INSERT INTO energy_samples(node_id, cpu_ms, lpm_ms, tx_ms, rx_ms, battery_mv, node_ts, recv_ts)
+          VALUES (:node_id, :cpu_ms, :lpm_ms, :tx_ms, :rx_ms, :battery_mv, :node_ts, :recv_ts)
+          """,
+          energy_rows,
+      )
     self.conn.commit()
 
 
 class UdpCollector(asyncio.DatagramProtocol):
   def __init__(self, queue: "asyncio.Queue[Dict[str, Any]]"):
     self.queue = queue
+    self._last_seq: Dict[str, int]   = {}   # node_id -> last seen seq
+    self._loss_count: Dict[str, int] = {}   # node_id -> cumulative lost packets
+
+  def _track_loss(self, node_id: str, seq: Optional[int]) -> None:
+    """Detect gaps in per-node sequence numbers and log packet loss."""
+    if seq is None:
+      return
+    prev = self._last_seq.get(node_id)
+    if prev is not None and seq > prev + 1:
+      lost = seq - prev - 1
+      self._loss_count[node_id] = self._loss_count.get(node_id, 0) + lost
+      LOGGER.warning(
+          "PACKET LOSS node=%s gap=%d (seq %d->%d) total_lost=%d",
+          node_id, lost, prev, seq, self._loss_count[node_id],
+      )
+    self._last_seq[node_id] = seq
 
   def datagram_received(self, data: bytes, addr):  # type: ignore[override]
     try:
-      # Some motes terminate JSON with a trailing NUL; strip it (and any padding) before parsing.
+      # Some motes terminate JSON with a trailing NUL; strip it before parsing.
       clean = data.split(b"\x00", 1)[0].strip()
       if not clean:
         return
       parsed = json.loads(clean.decode("utf-8"))
       payload = normalize_payload(parsed)
-      payload["recv_ts"] = int(asyncio.get_event_loop().time())
+      payload["recv_ts"] = int(time.time())
+      self._track_loss(payload["node_id"], payload.get("seq"))
       try:
         self.queue.put_nowait(payload)
       except asyncio.QueueFull:

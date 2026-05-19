@@ -56,7 +56,7 @@ tunnel)
 
 backend)
     banner
-    echo -e "${GREEN}${BOLD}▶ STEP 3: Starting Backend (Collector + Flask API)${NC}"
+    echo -e "${GREEN}${BOLD}▶ STEP 3: Starting Backend (Collector + Flask API via Gunicorn)${NC}"
     echo ""
     cd "$PROJECT_DIR"
 
@@ -69,15 +69,40 @@ backend)
     echo -e "  ${GREEN}✓ Starting UDP collector on port 8765...${NC}"
     python3 backend/ingest/collector.py &
     COLLECTOR_PID=$!
+    echo $COLLECTOR_PID > /tmp/sc_collector.pid
 
+    # Wait for collector to bind
     sleep 1
-    echo -e "  ${GREEN}✓ Starting Flask API on port 5001...${NC}"
-    python3 dashboard/flask_app_stub.py &
+    if ! kill -0 "$COLLECTOR_PID" 2>/dev/null; then
+        echo -e "  ${RED}✗ Collector failed to start. Check logs.${NC}"
+        exit 1
+    fi
+    echo -e "  ${GREEN}✓ Collector running (PID $COLLECTOR_PID)${NC}"
+
+    echo -e "  ${GREEN}✓ Starting Flask API via Gunicorn on port 5001...${NC}"
+    gunicorn -w 2 -b 0.0.0.0:5001 --chdir "$PROJECT_DIR" \
+             --pid /tmp/sc_flask.pid \
+             --log-level info \
+             "dashboard.flask_app_stub:app" &
     FLASK_PID=$!
+
+    # Health-check loop: wait up to 10s for API to come up
+    echo -n "  Waiting for Flask API"
+    for i in $(seq 1 10); do
+        sleep 1
+        if curl -sf http://localhost:5001/health > /dev/null 2>&1; then
+            echo -e " ${GREEN}✓${NC}"
+            break
+        fi
+        echo -n "."
+        if [ "$i" -eq 10 ]; then
+            echo -e " ${RED}timeout${NC}"
+        fi
+    done
 
     echo ""
     echo -e "  ${BOLD}Collector PID:${NC} $COLLECTOR_PID"
-    echo -e "  ${BOLD}Flask PID:${NC}     $FLASK_PID"
+    echo -e "  ${BOLD}Gunicorn PID:${NC}  $FLASK_PID"
     echo ""
     echo -e "  ${CYAN}API Endpoints (open in Firefox):${NC}"
     echo "    http://localhost:5001/health"
@@ -119,11 +144,68 @@ monitor)
 stop)
     banner
     echo -e "${RED}${BOLD}▶ Stopping all services...${NC}"
-    pkill -f "collector.py" 2>/dev/null && echo "  ✗ Collector stopped" || echo "  - Collector not running"
-    pkill -f "flask_app_stub.py" 2>/dev/null && echo "  ✗ Flask stopped" || echo "  - Flask not running"
-    pkill -f "node-red" 2>/dev/null && echo "  ✗ Node-RED stopped" || echo "  - Node-RED not running"
-    pkill -f "tunslip6" 2>/dev/null && echo "  ✗ tunslip6 stopped" || echo "  - tunslip6 not running"
+    pkill -f "collector.py"        2>/dev/null && echo "  ✗ Collector stopped"  || echo "  - Collector not running"
+    pkill -f "flask_app_stub:app"  2>/dev/null && echo "  ✗ Gunicorn stopped"   || echo "  - Gunicorn not running"
+    pkill -f "flask_app_stub.py"   2>/dev/null && true   # legacy plain python fallback
+    pkill -f "node-red"            2>/dev/null && echo "  ✗ Node-RED stopped"   || echo "  - Node-RED not running"
+    pkill -f "tunslip6"            2>/dev/null && echo "  ✗ tunslip6 stopped"   || echo "  - tunslip6 not running"
+    rm -f /tmp/sc_collector.pid /tmp/sc_flask.pid
     echo -e "${GREEN}  Done.${NC}"
+    ;;
+
+start)
+    banner
+    echo -e "${GREEN}${BOLD}▶ ONE-SHOT: Starting all backend services${NC}"
+    echo -e "  ${YELLOW}Note: start Cooja + tunslip6 separately (steps 1 & 2)${NC}"
+    echo ""
+    cd "$PROJECT_DIR"
+
+    if [ ! -f backend/db/iot.db ]; then
+        echo "  Initializing database..."
+        python3 backend/db/init_db.py
+    fi
+
+    # --- Collector ---
+    python3 backend/ingest/collector.py > /tmp/sc_collector.log 2>&1 &
+    echo $! > /tmp/sc_collector.pid
+    sleep 0.5
+    if ! kill -0 "$(cat /tmp/sc_collector.pid)" 2>/dev/null; then
+        echo -e "  ${RED}✗ Collector failed to start — see /tmp/sc_collector.log${NC}"; exit 1
+    fi
+    echo -e "  ${GREEN}✓ Collector PID $(cat /tmp/sc_collector.pid)${NC}"
+
+    # --- Flask via Gunicorn ---
+    gunicorn -w 2 -b 0.0.0.0:5001 --chdir "$PROJECT_DIR" \
+             --pid /tmp/sc_flask.pid \
+             --log-file /tmp/sc_flask.log \
+             "dashboard.flask_app_stub:app" &
+    sleep 1
+    echo -n "  Waiting for API "
+    for i in $(seq 1 10); do
+        if curl -sf http://localhost:5001/health > /dev/null 2>&1; then
+            echo -e "${GREEN}✓${NC}"
+            break
+        fi
+        sleep 1; echo -n "."
+        [ "$i" -eq 10 ] && echo -e "${RED} timeout (check /tmp/sc_flask.log)${NC}"
+    done
+    echo -e "  ${GREEN}✓ Gunicorn PID $(cat /tmp/sc_flask.pid 2>/dev/null || echo '?')${NC}"
+
+    # --- Node-RED ---
+    if command -v node-red &>/dev/null; then
+        if [ ! -f "$HOME/.node-red/flows.json" ]; then
+            mkdir -p "$HOME/.node-red"
+            cp "$PROJECT_DIR/dashboard/flows.json" "$HOME/.node-red/flows.json"
+        fi
+        node-red > /tmp/sc_nodered.log 2>&1 &
+        echo -e "  ${GREEN}✓ Node-RED started — http://localhost:1880/ui${NC}"
+    else
+        echo -e "  ${YELLOW}⚠ node-red not found; skipping dashboard${NC}"
+    fi
+
+    echo ""
+    echo -e "  ${CYAN}All services UP.  Stop with:${NC}  bash scripts/run_demo.sh stop"
+    echo ""
     ;;
 
 *)
@@ -137,13 +219,17 @@ stop)
     echo "              → Connects border router (needs sudo password)"
     echo ""
     echo -e "  ${GREEN}Terminal 3:${NC}  bash scripts/run_demo.sh ${BOLD}backend${NC}"
-    echo "              → Starts collector + Flask API"
+    echo "              → Starts collector + Flask API (Gunicorn)"
     echo ""
     echo -e "  ${GREEN}Terminal 4:${NC}  bash scripts/run_demo.sh ${BOLD}dashboard${NC}"
     echo "              → Node-RED dashboard at localhost:1880/ui"
     echo ""
     echo -e "  ${GREEN}Terminal 5:${NC}  bash scripts/run_demo.sh ${BOLD}monitor${NC}"
     echo "              → Live stats updating on screen"
+    echo ""
+    echo -e "  ${CYAN}One-shot (after Cooja + tunnel):${NC}"
+    echo -e "              bash scripts/run_demo.sh ${BOLD}start${NC}"
+    echo "              → Starts collector + Gunicorn + Node-RED with health checks"
     echo ""
     echo -e "  ${RED}Stop all:${NC}    bash scripts/run_demo.sh ${BOLD}stop${NC}"
     echo ""

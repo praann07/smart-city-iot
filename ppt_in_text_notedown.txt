@@ -1,0 +1,664 @@
+# Slide 1: Title Slide
+
+**Title:** Energy-Efficient Smart City Sensor Network Using Contiki-NG & IoT Protocols
+**Course:** 22AIE211 - Introduction to Communication & IoT
+**Project:** Course Project Presentation
+**Team:** Presented by: TEAM-10
+
+---
+
+# Slide 2: Introduction & Motivation
+
+**1. Why Smart City Monitoring?**
+- Urban areas face increasing pollution, noise, and temperature challenges.
+- Need real-time monitoring for public health and urban planning.
+- Traditional systems are costly, power-hungry, and lack scalability.
+
+**2. Project Motivation**
+- Deploy energy-efficient wireless sensor network for environmental monitoring.
+- Monitor: Air quality (PM2.5), Temperature, Noise levels.
+- Enable remote monitoring and control capabilities.
+
+**3. Key Challenges Addressed**
+- Energy constraints in battery-powered sensor nodes.
+- Reliable data transmission in mesh networks.
+- Real-time data processing and visualization.
+- Scalable architecture for large deployments.
+
+---
+
+# Slide 3: System Architecture for Energy-Efficient Smart City Sensors
+
+**Subtitle:** End-to-end data flow and control for 20 motes using Contiki-NG and IoT protocols.
+
+**Sensing Layer: 21 motes (1 border router + 20 sensors)**
+- 7 pollution (PM2.5), 7 temperature, 7 noise sensor motes.
+- Simple-energest module for per-mote energy monitoring.
+- IEEE 802.15.4 radio for low-power mesh connectivity.
+- Data sampled locally and forwarded via RPL.
+
+**Network Layer: IPv6 mesh and border routing**
+- RPL (IPv6 Routing Protocol for Low-Power Networks).
+- 6LoWPAN header compression for efficient IPv6 packets.
+- Border router bridges sensor network to host machine.
+
+**Transport and Collection: SLIP and UDP**
+- SLIP (Serial Line IP) tunnel via tunslip6.
+- UDP packets received on port 8765 by collector.
+- Python async UDP collector writes to SQLite.
+- Flask REST API exposes data on port 5001.
+
+**Application Layer**
+- Node-RED dashboard served on port 1880.
+- Python async UDP collector with SQLite storage.
+- Flask REST API (port 5001).
+- Control Feedback.
+
+---
+
+# Slide 4: IoT Protocol Stack Diagram
+
+**Application Layer**
+- Custom JSON-over-UDP: Lightweight sensor telemetry (our implementation)
+- CoAP / MQTT: Common alternatives (not used here to minimize overhead)
+
+**Transport Layer**
+- UDP: Lightweight, connectionless — chosen for periodic sensor data
+- (TCP avoided: connection overhead too heavy for constrained nodes)
+
+**Network Layer**
+- 6LoWPAN: IPv6 over Low-Power Wireless (header compression)
+- RPL: Routing Protocol for-Lower and Lower and Lossy Networks
+
+**Physical/MAC Layer**
+- IEEE 802.15.4: Low-power, short-range wireless (2.4 GHz, 250 kbps)
+- CSMA/CA for collision avoidance
+
+---
+
+# Slide 5: Proposed Solution - The Approach
+
+**Title:** PROPOSED SOLUTION
+**Subtitle:** THE APPROACH: Energy-Efficient IoT Sensor Network
+**Details:** Contiki-NG, RPL mesh, duty-cycling in the project
+
+**1. Deployment overview**
+- 21 motes total: 7 pollution + 7 temperature + 7 noise sensors.
+- 1 border router connecting mesh network to backend (SerialSocket port 60001).
+- Mesh topology using RPL for reliability.
+- Can increase up to 100+ nodes.
+
+**2. Platform and tooling**
+- Contiki-NG lightweight OS/simulator.
+- Built-in 6LoWPAN, RPL, low-power protocols.
+- Cooja simulator for cost-effective testing.
+- PowerTracker for real-time energy analysis.
+
+**3. Energy-aware communication**
+- ContikiMAC duty-cycling to reduce idle listening.
+- Adaptive duty-cycle control based on battery levels.
+- Remote duty-cycle management via command feedback.
+- Design extends battery life through optimization.
+
+**4. End-to-end system stack**
+- Sensing: multi-sensor nodes collect environmental data.
+- Network: RPL mesh routing with 6LoWPAN compression.
+- Gateway: SLIP tunnel connects sensor network to host.
+- Backend: Python collector, SQLite, Flask APIs, Python-Dashboard.
+
+---
+
+# Slide 6: Project Objectives
+
+**1. Design Energy-Efficient IoT Sensor Network**
+- Implement low-power wireless communication protocols.
+- Optimize energy consumption through duty-cycling.
+- Extend network lifetime with adaptive power management.
+
+**2. Demonstrate IoT Communication Protocols**
+- Implement RPL (Routing Protocol for Low-Power Networks).
+- Use 6LoWPAN for IPv6 over low-power wireless.
+- Apply UDP for efficient data transmission.
+
+**3. Energy-aware communication**
+- Monitor PM2.5 air quality (pollution levels).
+- Track temperature variations across deployment area.
+- Measure noise levels in decibels.
+
+**4. Build Backend Infrastructure**
+- Real-time data collection and storage.
+- RESTful APIs for data access.
+- Support for multiple concurrent nodes.
+
+---
+
+# Slide 7: System Architecture (Block Diagram)
+
+**Subtitle:** End-to-end data flow and control for 21 motes using Contiki-NG and IoT protocols.
+
+*(Note: Content appears to be identical to Slide 6 Project Objectives)*
+
+---
+
+# Slide 8: Technology Stack
+
+**1. Simulation & Hardware Platform**
+- Contiki-NG: Operating system for IoT devices (C programming).
+- Cooja: Network simulator for Contiki-NG.
+- Cooja Mote Type: Simulated native platform with IEEE 802.15.4 radio.
+- PowerTracker + Simple-Energest: Energy monitoring tools in Cooja.
+- tunslip6: SLIP tunnel utility for IPv6 connectivity.
+
+**2. Communication Protocols**
+- 6LoWPAN: IPv6 adaptation and header compression.
+- RPL: Routing protocol for low-power lossy networks.
+- UDP: Lightweight transport protocol (port 8765).
+- SLIP: Serial Line IP for border router tunnel.
+
+**3. Backend Technologies**
+- Python 3.10+: Data collection and processing.
+- AsyncIO: Non-blocking UDP collector.
+- SQLite: Lightweight embedded database with WAL.
+- Flask: RESTful API framework (port 5001).
+- Pandas: Data analysis and feature engineering.
+- scikit-learn: Machine learning library.
+
+---
+
+# Slide 9: Methodology: Step-by-Step Implementation Approach (PHASE 1-3)
+
+**Phase 1: Simulation Environment Setup**
+1. Install and configure Contiki-NG development environment.
+2. Set up Cooja network simulator.
+3. Create simulation file with 21 motes (1 border router + 20 sensors).
+4. Configure node positions and radio parameters (UDGM model).
+5. Enable PowerTracker and Energy plugins for monitoring.
+
+**Phase 2: Node Programming**
+1. Initialize sensors (PM2.5, temperature, noise).
+2. Configure IEEE 802.15.4 radio and ContikiMAC.
+3. Implement RPL for mesh routing.
+4. Create JSON packets with sensor readings.
+5. Send UDP packets to border router.
+6. Compile firmware for Cooja native mote target.
+7. Load compiled binaries into Cooja nodes.
+8. Load compiled binaries into Cooja nodes.
+
+**Phase 3: Network & Data Collection**
+1. Configure border router with SLIP serial interface.
+2. Start tunslip6 on host to create IPv6 tunnel (aaaa::1/64).
+3. Implement Python async UDP collector (port 8765).
+4. Design SQLite database schema (readings, energy_samples, commands).
+5. Initialize database with proper indexes.
+6. Start simulation and verify packet reception.
+
+---
+
+# Slide 10: Methodology: Step-by-Step Implementation Approach (PHASE 4-5)
+
+**Phase 4: Backend Development**
+1. Build feature engineering module (packet loss, battery trends, routing metrics).
+2. Develop Flask REST API with multiple endpoints.
+3. Implement PowerTracker CSV ingest script.
+4. Create ML module for failure prediction.
+
+**Phase 5: Visualization & Control**
+1. Design Node-RED dashboard flow.
+2. Integrate API endpoints with dashboard.
+3. Implement duty-cycle command feedback loop.
+4. Test end-to-end system functionality.
+Network Design & Protocols
+1 Network architecture and scale
+
+21 nodes total: 20 sensor nodes plus 1 border router
+
+Mesh architecture with multi-hop routing using RPL
+
+Self-organizing discovery and automatic routing tree build
+
+Self-healing via automatic parent switching on link failure
+
+2 Physical and MAC layer: IEEE 802.15.4
+
+Low-power, short-range radio at 2.4 GHz ISM band
+
+Data rate 250 kbps with CSMA/CA (Carrier Sense Multiple Access with Collision Avoidance) channel access
+
+Optimized for battery-powered sensor devices
+
+Supported by Contiki-NG on constrained hardware
+
+3 Adaptation layer: 6LoWPAN
+
+IPv6 for low-power networks with header compression
+
+IPv6 header 40 bytes reduced to about 2 bytes
+
+Fragmentation and reassembly for larger packets
+
+Enables end-to-end IPv6 connectivity for tiny devices
+
+Network Design & Protocols
+1 Routing layer: RPL
+
+Self-healing: Detects broken links and finds alternate parents
+
+Rank metric combining hop count + link quality
+
+Parent selection chooses lowest-rank node
+
+Trickle timer reduces control traffic when stable
+
+Self-healing: Detects broken links and finds alternate parents
+
+2 Transport: UDP for sensor data
+
+No retransmissions or flow control — suitable for periodic sensor data
+
+Designated data-collection port: 8765
+
+Common choice for constrained IoT telemetry
+
+Low overhead compared to TCP
+
+RPL DODAG Tree Diagram
+
+Title: RPL DODAG Tree Diagram
+
+Root Node / Border Router (Rank 0)
+
+Node A (Rank 1)
+Node B (Rank 1)
+
+Preferred Parent
+Alternate Path
+Alternate Path
+
+Node A (Rank 1)
+Node C (Rank 2)
+Node E (Rank 2)
+
+Rank
+Rank
+Rank
+
+Node F (Rank 3)
+Node G (Rank G)
+
+Legend:
+
+Root Node
+
+Child Node
+
+Data Flow / Preferred Path
+
+Data Collection & Storage
+
+End-to-end data flow and control for 21 motes using Contiki-NG and IoT protocols
+
+Data Flow
+
+Sensor nodes send JSON packets via UDP every few seconds
+
+Python async collector listens on port 8765
+
+Batch writes to SQLite with WAL (Write-Ahead Logging)
+
+Data Export Capabilities
+
+CSV export for analysis
+
+SQL dump for backup
+
+Real-time API access
+
+Current Status
+
+30,000+ readings collected from 21 active nodes
+
+
+Energy Efficiency Concepts & Strategy
+
+Our Energy Optimization Strategy for Smart City Sensor Network
+
+1. Duty-Cycling (ContikiMAC)
+
+Nodes sleep most of the time (>99%).
+
+Wake up periodically to check for transmissions.
+
+Reduces idle listening energy dramatically.
+
+Synchronization-free operation.
+
+2. Power Monitoring with PowerTracker
+
+Real-time tracking of CPU, LPM, Tx, Rx time.
+
+Per-node energy consumption analysis to identify power-hungry nodes or behaviors.
+
+Export CSV for offline analysis.
+
+3. Adaptive Control
+
+Remote duty-cycle adjustment via commands.
+
+Reduce sampling rate for low-battery nodes.
+
+Prioritize critical nodes (e.g., near border router).
+
+Balance network coverage vs. energy consumption.
+
+4. Energy-Aware Design
+
+Lightweight JSON packets minimize Tx time.
+
+Use UDP instead of TCP to avoid overhead.
+
+6LoWPAN header compression saves bytes.
+
+Batch processing reduces wake-up frequency.
+
+Expected Outcomes and Impact
+Functional System
+
+Operational smart city sensor network simulation
+
+Complete data pipeline:
+Sensors → Network → Backend → Dashboard
+
+Real-time monitoring with sub-second latency
+
+Remote control capabilities via duty-cycle commands
+
+Performance Targets
+
+Packet Delivery Ratio (PDR): >95%
+
+End-to-end latency: <1 second
+
+Network uptime: >99% (self-healing mesh)
+
+Energy efficiency: 3–5x improvement via duty-cycling
+
+Scalability: Supports 50+ nodes without re-architecture
+
+About Data
+
+Comprehensive environmental dataset (PM2.5, temp, noise)
+
+Energy consumption profiles per node
+
+Routing behavior analysis (parent switches, rank changes)
+
+Failure prediction: 94.6% accuracy (80.5% F1 on failure class)
+
+Practical Impact
+
+Proof-of-concept for low-cost urban monitoring
+
+Framework reusable for other sensor applications
+
+Foundation for hardware deployment
+
+Demonstrates course concepts in real-world scenario
+
+Key Challenges while building this Project
+Challenge 1: Energy Constraints
+
+Problem: Battery-powered nodes have limited lifetime
+
+Impact: Network dies when first node fails
+
+Solution:
+
+ContikiMAC duty-cycling (>99% sleep time)
+
+Adaptive sampling based on battery level
+
+Challenge 2: Network Reliability
+
+Problem: Packet loss due to interference, collisions, node failures
+
+Impact: Missing data, incomplete environmental picture
+
+Solution:
+
+RPL self-healing mesh network
+
+Sequence number tracking for loss detection
+
+Challenge 3: Scalability
+
+Problem: Performance degradation with many nodes
+
+Impact: Increased latency, congestion, energy consumption
+
+Solution:
+
+Hierarchical mesh topology
+
+Efficient 6LoWPAN header compression
+
+Challenge 4: Real-Time Processing
+
+Problem: High data volume from 21 nodes (packets every few seconds)
+
+Impact: Backend bottleneck, data loss
+
+Solution:
+
+Python asyncio for non-blocking I/O
+
+Batch inserts (50 packets)
+
+API caching for frequent queries
+
+Machine Learning for Predictive Maintenance
+Problem Statement
+
+Predict node failures before they occur
+
+Enable proactive battery replacement or duty-cycle adjustment
+
+Avoid data loss from sudden node death
+
+ML Model Design
+
+Ensemble learning method (80 decision trees)
+
+Handles non-linear features; robust to outliers and missing data
+
+Fast inference for real-time predictions
+
+Input Features and Target
+
+pm25: air quality (pollution sensor reading)
+
+temp_tenths: temperature in tenths of degrees
+
+noise_db: noise level in decibels
+
+pm25_rolling: 10-reading rolling average of PM2.5
+
+noise_rolling: 10-reading rolling average of noise
+
+temp_rolling: 10-reading rolling average of temperature
+
+congestion: binary flag (high pm25 or noise)
+
+node_age: number of readings since node started (proxy for uptime)
+
+Target: future_low = 1 if battery drops below 2500 mV in next 50 readings
+
+Note: raw battery_mv is deliberately excluded from features — the model must
+predict failure from environmental sensor patterns only, which is the harder
+and more interesting problem.
+
+Training and Evaluation
+
+Load historical data from SQLite readings table
+
+Label: future_low = 1 if battery drops under 2500 mV in next 50 packets
+
+Split 80% training, 20% testing stratified; evaluate precision recall F1
+
+Prediction Pipeline and Deployment
+
+Fetch latest reading per node and extract 4 features
+
+Model outputs risk probability 0.0 to 1.0
+
+Dashboard displays risk scores and alerts
+
+Heuristic Feedback
+
+Used when training data is insufficient or imbalanced
+
+battery_mv under 2500 → risk 0.9 critical
+
+battery_mv 2500 to 2700 → risk 0.4 warning
+
+battery_mv over 2700 → risk 0.0 healthy
+
+Expected Performance and Updates
+
+Achieved accuracy: 94.6% overall, 80.5% F1 on failure class
+
+Deliberately harder task: no battery info given to model
+
+Minimize false alarms; maximize recall for actual failures
+
+Retrain periodically as more data is collected
+
+Training / Prediction / Action Pipeline Diagram (Text from Boxes)
+TRAINING
+
+Data Loading & Preparation
+(SQLite, Historical Data)
+
+Feature Engineering & Labeling
+(Future Battery Low <2800mV)
+
+Model Training & Evaluation
+(RandomForest Classifier, 80/20 Split)
+
+MODEL
+Trained Model Artifact
+(failure_model.joblib)
+
+PREDICTION
+
+Real-time Data Ingestion
+(Latest Node Readings)
+
+Feature Extraction
+[pm25, temp_tenths, noise_db, pm25_rolling, noise_rolling, temp_rolling, congestion, node_age]
+
+Model Inference & Risk Scoring
+(Probability 0.0 - 1.0)
+
+Heuristic Fallback
+(Rule-based Logic if Data Insufficient)
+
+ACTION
+
+Result Caching
+(predictions.json)
+
+API Service & Availability
+(Flask /api/predictions)
+
+Dashboard Display & Proactive Maintenance Alerts
+
+---
+
+# Slide: Experimental Results
+
+**1. Data Collection**
+- 30,286 sensor readings from 21 nodes over 5-hour simulation
+- 1,260 energy samples (PowerTracker, 5-minute intervals)
+- 3 duty-cycle commands issued to degraded nodes
+- Packet loss: 4–10% (1-hop) to 10–40% (during burst interference)
+
+**2. ML Failure Prediction**
+- Model: RandomForest (80 trees, max_depth=10)
+- Features: environmental readings + rolling averages (NO raw battery_mv)
+- Overall accuracy: 94.6%
+- Failure class: Precision 89.4%, Recall 73.2%, F1 80.5%
+- Healthy class: Precision 95.4%, Recall 98.4%, F1 96.9%
+- The model predicts failure 50 readings ahead (~8 min) purely from sensor patterns
+
+**3. Energy Efficiency**
+- ContikiMAC duty-cycling: 5.6x reduction in radio-on time vs always-on
+- Nodes spend >99% of time in Low-Power Mode (LPM)
+- Healthy nodes maintain battery above 2500 mV for entire 5-hour run
+- 2-hop nodes consume ~30% more energy than 1-hop (relay overhead)
+
+**4. Charts (see experiments/results/)**
+- energy_comparison.png: Bar chart showing 5.6x savings
+- battery_lifetime.png: Discharge curves for healthy vs fast-drain nodes
+- duty_cycle_breakdown.png: CPU/LPM/Tx/Rx split by node category
+- packets_per_node.png: Packet count per node
+- loss_rate_per_node.png: Packet loss analysis
+- timeseries_example.png: Sensor values over time with temporal patterns
+
+---
+
+# Slide: Limitations & Future Work
+
+**Honest Limitations**
+
+1. **Simulation-only**: All data comes from Cooja simulator, not real hardware.
+   Sensor readings use randomized values with temporal patterns, not actual
+   PM2.5/temperature/noise sensors.
+
+2. **Synthetic data for ML training**: The training data is generated by a
+   Python script that models realistic patterns (diurnal cycles, spatial
+   correlation, sensor drift). Real-world data would have additional noise,
+   concept drift, and edge cases that could reduce accuracy.
+
+3. **Energy measurements are simulated**: ContikiMAC duty-cycling is real
+   (built into Contiki-NG), but our PowerTracker numbers come from the
+   simulator's timing model, not physical hardware measurements.
+
+4. **No real-world deployment**: The mesh network topology, radio
+   propagation, and interference patterns are simplified models.
+
+**Future Work**
+
+1. Deploy on real hardware (e.g., Zolertia RE-Mote, nRF52840 DK) with
+   actual PM2.5, temperature, and noise sensors.
+
+2. Implement MQTT or CoAP for standardized IoT messaging.
+
+3. Add TLS/DTLS security for data-in-transit encryption.
+
+4. Scale to 100+ nodes and test multi-DODAG RPL scenarios.
+
+5. Collect real-world data and retrain ML model — expected accuracy
+   would likely be 75–85% due to noisier real sensor readings.
+
+6. Add edge computing: run lightweight ML inference directly on
+   constrained nodes for in-network anomaly detection.
+
+---
+
+# Slide: Conclusion
+
+**What We Built**
+- Complete end-to-end IoT system: 21 Contiki-NG sensor nodes → RPL mesh
+  → IPv6/6LoWPAN → Python backend → SQLite → Flask API → Node-RED dashboard
+- ML-based predictive maintenance: 94.6% accuracy predicting node failure
+  from sensor patterns alone (no battery info given to model)
+- Energy-efficient design: ContikiMAC provides 5.6x radio energy reduction
+
+**Key Takeaways**
+- RPL provides self-healing mesh routing for lossy sensor networks
+- 6LoWPAN makes IPv6 viable on constrained devices (40-byte header → ~2 bytes)
+- Duty-cycling is the single most effective technique for extending node lifetime
+- ML can predict failures from environmental patterns, enabling proactive
+  maintenance before nodes die
+
+**Thank You — Questions?**

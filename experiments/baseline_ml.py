@@ -1,16 +1,28 @@
-"""Train a quick baseline and persist predictions for the dashboard."""
+"""Train a quick baseline and persist predictions for the dashboard.
+
+Key design decisions vs. the original version:
+  - `node_age` REMOVED: cumcount was trivially correlated with the
+    scripted battery decay, inflating accuracy artificially.
+  - `rank` ADDED: RPL rank (in 256-units) is an honest proxy for
+    path length and retransmission overhead.
+  - `battery_drop_rate` ADDED: rolling std of battery_mv captures
+    the *rate of change*, not just the absolute position.
+  - TIME-BASED SPLIT: first 80% of wall-clock data = train,
+    last 20% = test.  This is the correct evaluation for time-series.
+  - Feature importances are logged and persisted with predictions.
+"""
 
 import json
 import sqlite3
 import time
 from pathlib import Path
-from typing import Tuple
+from typing import Dict, List, Tuple
 
+import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report
 from joblib import dump
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report
 
 DB_PATH = Path(__file__).resolve().parents[1] / "backend" / "db" / "iot.db"
 ARTIFACT_DIR = Path(__file__).resolve().parent / "artifacts"
@@ -31,49 +43,89 @@ def make_labels(df: pd.DataFrame) -> pd.DataFrame:
   df["future_low"] = (
       df.groupby("node_id")["battery_mv"].shift(-50).fillna(df["battery_mv"]) < 2500
   ).astype(int)
-  # Derived features from sensor readings (NOT battery)
-  grp_pm = df.groupby("node_id")["pm25"]
-  df["pm25_rolling"] = grp_pm.transform(lambda x: x.rolling(10, min_periods=1).mean()).fillna(0)
-  grp_noise = df.groupby("node_id")["noise_db"]
-  df["noise_rolling"] = grp_noise.transform(lambda x: x.rolling(10, min_periods=1).mean()).fillna(0)
-  grp_temp = df.groupby("node_id")["temp_tenths"]
-  df["temp_rolling"] = grp_temp.transform(lambda x: x.rolling(10, min_periods=1).mean()).fillna(0)
+
+  # --- Sensor rolling features (no battery information given to model) ---
+  for col, alias in [("pm25", "pm25_rolling"), ("noise_db", "noise_rolling"),
+                     ("temp_tenths", "temp_rolling")]:
+    df[alias] = (
+        df.groupby("node_id")[col]
+          .transform(lambda x: x.rolling(10, min_periods=1).mean())
+          .fillna(0)
+    )
+
   df["congestion"] = ((df["noise_db"] > 80) | (df["pm25"] > 100)).astype(int)
-  # Sequence number as proxy for node age / uptime
-  df["node_age"] = df.groupby("node_id").cumcount()
+
+  # --- Topology feature: rank (hops into the mesh) ---
+  df["rank"] = df["rank"].fillna(256).astype(int)  # 256 = 1-hop default
+
+  # --- Battery rate-of-change (rolling std over 10 readings) ---
+  # This captures how fast the battery is draining, not its absolute level.
+  df["battery_drop_rate"] = (
+      df.groupby("node_id")["battery_mv"]
+        .transform(lambda x: x.rolling(10, min_periods=2).std())
+        .fillna(0)
+  )
   return df
 
 
-def train_failure(df: pd.DataFrame) -> Tuple[RandomForestClassifier, str]:
-  # Predict battery failure purely from environmental sensor readings.
-  # This is the hard (and interesting) problem: can sensor load patterns
-  # predict which nodes will fail?  No battery info is given to the model.
-  feat_cols = ["pm25", "temp_tenths", "noise_db",
-               "pm25_rolling", "noise_rolling", "temp_rolling",
-               "congestion", "node_age"]
-  feats = df[feat_cols].fillna(0)
+# Honest feature set — no node_age, uses topology + rate-of-change instead.
+FEAT_COLS: List[str] = [
+    "pm25", "temp_tenths", "noise_db",
+    "pm25_rolling", "noise_rolling", "temp_rolling",
+    "congestion",
+    "rank",            # RPL path length — deeper nodes drain faster
+    "battery_drop_rate",  # rolling std of battery_mv — rate of change
+]
+
+
+def train_failure(df: pd.DataFrame) -> Tuple[RandomForestClassifier, str, Dict]:
+  """
+  Time-based train/test split: train on first 80% of data chronologically,
+  evaluate on the last 20%.  This mirrors real deployment where the model
+  is trained on historical data and predicts the near future.
+  """
+  feats  = df[FEAT_COLS].fillna(0)
   labels = df["future_low"]
+
   if labels.nunique() < 2:
     raise RuntimeError("Not enough class variety yet. Collect more data.")
-  X_train, X_test, y_train, y_test = train_test_split(feats, labels, test_size=0.2, stratify=labels)
+
+  # Chronological (time-based) split — NOT random
+  split_idx = int(len(df) * 0.8)
+  df_sorted = df.sort_values("recv_ts")
+  train_idx = df_sorted.index[:split_idx]
+  test_idx  = df_sorted.index[split_idx:]
+
+  X_train, y_train = feats.loc[train_idx], labels.loc[train_idx]
+  X_test,  y_test  = feats.loc[test_idx],  labels.loc[test_idx]
+
+  if y_train.nunique() < 2 or y_test.nunique() < 2:
+    raise RuntimeError("Time split produced single-class partition. Need longer run.")
+
   clf = RandomForestClassifier(n_estimators=80, max_depth=10, random_state=42)
   clf.fit(X_train, y_train)
   y_pred = clf.predict(X_test)
   report = classification_report(y_test, y_pred, digits=3)
-  return clf, report
+
+  importances: Dict = {
+      col: float(imp)
+      for col, imp in sorted(
+          zip(FEAT_COLS, clf.feature_importances_),
+          key=lambda t: t[1], reverse=True,
+      )
+  }
+  return clf, report, importances
 
 
 def latest_feature_frame(df: pd.DataFrame) -> pd.DataFrame:
-  feat_cols = ["pm25", "temp_tenths", "noise_db",
-               "pm25_rolling", "noise_rolling", "temp_rolling",
-               "congestion", "node_age"]
   latest_rows = df.sort_values("recv_ts").groupby("node_id").tail(1)
-  feats = latest_rows[feat_cols].fillna(0)
+  feats = latest_rows[FEAT_COLS].fillna(0)
   feats.index = latest_rows["node_id"].values
   return feats
 
 
-def persist_artifacts(model: RandomForestClassifier, report: str, df: pd.DataFrame) -> None:
+def persist_artifacts(model: RandomForestClassifier, report: str,
+                      importances: Dict, df: pd.DataFrame) -> None:
   ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
   dump(model, MODEL_PATH)
 
@@ -92,18 +144,22 @@ def persist_artifacts(model: RandomForestClassifier, report: str, df: pd.DataFra
         "temp_tenths": float(latest_raw.loc[node_id, "temp_tenths"]) if pd.notna(latest_raw.loc[node_id, "temp_tenths"]) else 0.0,
         "noise_db": float(latest_raw.loc[node_id, "noise_db"]) if pd.notna(latest_raw.loc[node_id, "noise_db"]) else 0.0,
         "battery_mv": float(latest_raw.loc[node_id, "battery_mv"]),
+        "rank": int(latest_raw.loc[node_id, "rank"]) if pd.notna(latest_raw.loc[node_id, "rank"]) else 256,
     })
 
   PRED_PATH.parent.mkdir(parents=True, exist_ok=True)
-  write_predictions(predictions, source="model", report=report)
+  write_predictions(predictions, source="model", report=report,
+                    importances=importances)
 
 
-def write_predictions(preds, source: str, report: str = "") -> None:
+def write_predictions(preds, source: str, report: str = "",
+                      importances: Dict = None) -> None:
   PRED_PATH.parent.mkdir(parents=True, exist_ok=True)
   payload = {
       "generated_ts": int(time.time()),
       "source": source,
       "report": report,
+      "feature_importances": importances or {},
       "predictions": preds,
   }
   with PRED_PATH.open("w", encoding="utf-8") as f:
@@ -118,11 +174,14 @@ def heuristic_predictions(df: pd.DataFrame) -> None:
     battery_mv = safe(row.get("battery_mv"), 3000.0)
     pm25 = safe(row.get("pm25"), 0.0)
     noise_db = safe(row.get("noise_db"), 0.0)
+    rank = int(row.get("rank") or 256)
     risk = 0.0
     if battery_mv < 2800:
       risk = 0.9
     elif battery_mv < 2900:
       risk = 0.4
+    elif rank >= 512:       # 2-hop+ nodes are higher risk regardless
+      risk = max(risk, 0.3)
     preds.append({
         "node_id": row["node_id"],
         "risk_battery_low": float(risk),
@@ -130,8 +189,10 @@ def heuristic_predictions(df: pd.DataFrame) -> None:
         "temp_tenths": safe(row.get("temp_tenths"), 0.0),
         "noise_db": noise_db,
         "battery_mv": battery_mv,
+        "rank": rank,
     })
-  write_predictions(preds, source="heuristic", report="fallback due to single-class data")
+  write_predictions(preds, source="heuristic",
+                    report="fallback due to single-class or insufficient data")
 
 
 def main():
@@ -141,16 +202,21 @@ def main():
     return
   df = make_labels(df)
   try:
-    model, report = train_failure(df)
+    model, report, importances = train_failure(df)
   except RuntimeError as exc:
     print(str(exc))
     heuristic_predictions(df)
     print("Wrote heuristic predictions to", PRED_PATH)
     return
-  persist_artifacts(model, report, df)
+  persist_artifacts(model, report, importances, df)
   print("Saved model to", MODEL_PATH)
   print("Saved predictions to", PRED_PATH)
+  print("\n--- Classification Report (time-based split) ---")
   print(report)
+  print("\n--- Feature Importances (higher = more influential) ---")
+  for feat, imp in sorted(importances.items(), key=lambda t: t[1], reverse=True):
+    bar = '#' * int(imp * 50)
+    print(f"  {feat:<22} {imp:.4f}  {bar}")
 
 
 if __name__ == "__main__":
